@@ -10,7 +10,7 @@ This crate aims to make it possible to target all Cortex-M devices from a single
 - [x] Target the core peripherals of all Cortex-M devices (NVIC, SCB, etc...) and some unique ones (FPU, etc...)
 - [ ] **WIP** Target most common peripherals that can be used by the normal user (RCC, PWR, GPIO, etc...)
 - [ ] Allow for multithreaded applications by creating a "one instance only" system for the peripherals.
-- [ ] Interact with `cortex-m-rt`.
+- [ ] Compatible with [`embedded-hal`](https://github.com/rust-embedded/embedded-hal).
 - [ ] Create some examples.
 ## License
 Licensed under dual license [APACHE-2.0]() and [MIT]()
