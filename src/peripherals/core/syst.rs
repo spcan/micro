@@ -12,27 +12,7 @@ pub struct SysTick {
 
 impl crate::common::VolatileStruct for SysTick {}
 
-impl SysTick {
-	/// Sets bit at block and offset given
-	#[inline]
-	pub fn set(&mut self, b: usize, o: usize) -> &mut Self {
-		self.block[b] |= 1<<o;
-		self
-	}
-
-	/// Clears bit at block and offset given
-	#[inline]
-	pub fn clear(&mut self, b: usize, o: usize) -> &mut Self {
-		self.block[b] &= !(1 << o);
-		self
-	}
-
-	/// Checks if bit is set
-	#[inline]
-	pub fn is_set(&self, r: usize, b: usize) -> bool {
-		(self.block[r].read() >> b) & 1 == 1
-	}
-}
+impl_rwio!(SysTick);
 
 impl SysTick {
 	/// Clears current value to 0
@@ -52,19 +32,15 @@ impl SysTick {
 	/// - Program Control and Status register"
 	///
 	/// The sequence translates to `self.set_reload(x); self.clear_current(); self.counter_state(State::ON)`
-	pub fn counter_state(&mut self, s: State) -> &mut Self {
-		match s{
-			State::ON => self.set(0, 0),
-			State::OFF => self.clear(0, 0),
-		}
+	pub fn counter_state(&mut self, s: bool) -> &mut Self {
+		if s { self.set(0, 0) }
+		else { self.clear(0, 0) }
 	}
 
 	/// Enables/Disables SysTick interrupt
-	pub fn interrupt_state(&mut self, s: State) -> &mut Self {
-		match s {
-			State::ON => self.set(0, 1),
-			State::OFF => self.clear(0, 1),
-		}
+	pub fn interrupt_state(&mut self, s: bool) -> &mut Self {
+		if s { self.set(0, 1) }
+		else { self.clear(0, 1) }
 	}
 
 	/// Gets clock source

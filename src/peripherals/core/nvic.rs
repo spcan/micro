@@ -15,26 +15,7 @@ pub struct Nvic {
 
 impl crate::common::VolatileStruct for Nvic {}
 
-impl Nvic {
-	#[inline]
-	pub fn set(&mut self, b: usize, o: usize) -> &mut Self {
-		self.block[b] |= 1<<o;
-		self
-	}
-
-	#[inline]
-	pub fn clear(&mut self, b: usize, o: usize) -> &mut Self {
-		self.block[b] &= !(1 << o);
-		self
-	}
-	#[inline]
-	pub fn write_bits(&mut self, b: usize, o: usize, data: u32, size: usize) -> &mut Self {
-		let mask = (1u32 << size) - 1;
-		let old = self.block[b].read();
-		self.block[b].write( old & !(mask << o) | ((data & mask) << o) );
-		self
-	}
-}
+impl_rwio!(Nvic);
 
 impl Nvic {
 	/// Request an IRQ in software
@@ -50,11 +31,9 @@ impl Nvic {
 	}
 
 	/// Enable/Disable the interrupt `int`
-	pub fn int_state(&mut self, int: u32, s: State) {
-		match s {
-			State::ON  => self.block[     int as usize / 32].write( 1 << (int as usize % 32) ),
-			State::OFF => self.block[32 + int as usize / 32].write( 1 << (int as usize % 32) ),
-		}
+	pub fn int_state(&mut self, int: u32, s: bool) {
+		if s { self.block[     int as usize / 32].write( 1 << (int as usize % 32) ) }
+		else { self.block[32 + int as usize / 32].write( 1 << (int as usize % 32) ) }
 	}
 
 	/// Returns the NVIC priority of interrupt

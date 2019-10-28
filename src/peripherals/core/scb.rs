@@ -34,27 +34,7 @@ pub struct Scb {
 
 impl crate::common::VolatileStruct for Scb {}
 
-impl Scb {
-
-	#[inline]
-	pub fn set(&mut self, b: usize, o: usize) -> &mut Self {
-		self.block[b] |= 1<<o;
-		self
-	}
-
-	#[inline]
-	pub fn clear(&mut self, b: usize, o: usize) -> &mut Self {
-		self.block[b] &= !(1 << o);
-		self
-	}
-	#[inline]
-	pub fn write_bits(&mut self, b: usize, o: usize, data: u32, size: usize) -> &mut Self {
-		let mask = (1u32 << size) - 1;
-		let old = self.block[b].read();
-		self.block[b].write( old & !(mask << o) | ((data & mask) << o) );
-		self
-	}
-}
+impl_rwio!(Scb);
 
 #[cfg(has_fpu)]
 #[derive(Clone, Copy)]
@@ -272,19 +252,19 @@ use self::scb_consts::*;
 impl Scb {
 	/// Enable I-Cache if disabled
 	#[inline]
-	pub fn icache_state(&mut self, s: State) -> &mut Self {
+	pub fn icache_state(&mut self, s: bool) -> &mut Self {
 
 		match s {
-			State::ON if self.icache_enabled() => return self,
-			State::OFF if !self.icache_enabled() => return self,
+			true if self.icache_enabled() => return self,
+			false if !self.icache_enabled() => return self,
 
-			State::ON => {
+			true => {
 				let cbp = unsafe { super::cbp::Cbp::from_addr( super::cbp::ADDRESS ) };
 				cbp.iciallu();
 				self.block[SCBRegs::CCR as usize] |= SCB_CCR_IC_MASK;
 			},
 
-			State::OFF => {
+			false => {
 				self.block[SCBRegs::CCR as usize] &= !SCB_CCR_IC_MASK;
 				let cbp = unsafe { super::cbp::Cbp::from_addr( super::cbp::ADDRESS ) };
 				cbp.iciallu();
@@ -318,19 +298,19 @@ impl Scb {
 
 	/// Enables/Disables D-Cache
 	#[inline]
-	pub fn dcache_state(&mut self, s: State) -> &mut Self {
+	pub fn dcache_state(&mut self, s: bool) -> &mut Self {
 		match s {
-			State::ON if self.dcache_enabled() => return self,
-			State::OFF if !self.dcache_enabled() => return self,
+			true if self.dcache_enabled() => return self,
+			false if !self.dcache_enabled() => return self,
 
-			State::ON => {
+			true => {
 				self.invalidate_dcache( unsafe { super::cpuid::CpuId::from_addr(super::cpuid::ADDRESS) } );
 				self.block[SCBRegs::CCR as usize] |= SCB_CCR_DC_MASK;
 				asm::dsb();
 				asm::isb();
 			},
 
-			State::OFF => {
+			false => {
 				self.block[SCBRegs::CCR as usize] &= !SCB_CCR_DC_MASK;
 				self.clean_invalidate_dcache( unsafe { super::cpuid::CpuId::from_addr(super::cpuid::ADDRESS) } );
 			},
@@ -510,19 +490,15 @@ impl Scb {
 
 impl Scb {
 	/// Set/Reset the SLEEPDEEP bit in the SCR register
-	pub fn sleepdeep_state(&mut self, s: State) -> &mut Self {
-		match s {
-			State::ON => self.set(SCBRegs::SCR as usize, 2),
-			State::OFF => self.clear(SCBRegs::SCR as usize, 2),
-		}
+	pub fn sleepdeep_state(&mut self, s: bool) -> &mut Self {
+		if s { self.set(SCBRegs::SCR as usize, 2) }
+		else { self.clear(SCBRegs::SCR as usize, 2) }
 	}
 
 	/// Set/Reset the SLEEPONEXIT bit in the SCR register
-	pub fn sleeponexit_state(&mut self, s: State) -> &mut Self {
-		match s {
-			State::ON => self.set(SCBRegs::SCR as usize, 1),
-			State::OFF => self.clear(SCBRegs::SCR as usize, 1),
-		}
+	pub fn sleeponexit_state(&mut self, s: bool) -> &mut Self {
+		if s { self.set(SCBRegs::SCR as usize, 1) }
+		else { self.clear(SCBRegs::SCR as usize, 1) }
 	}
 }
 
@@ -544,11 +520,9 @@ impl Scb {
 
 impl Scb {
 	/// Set/Reset the PENDSVSET bit in the ICSR register which will pend the PendSV interrupt
-	pub fn pendsv_state(&mut self, s: State) -> &mut Self {
-		match s {
-			State::ON  => self.set(SCBRegs::ICSR as usize, 28),
-			State::OFF => self.set(SCBRegs::ICSR as usize, 27),
-		}
+	pub fn pendsv_state(&mut self, s: bool) -> &mut Self {
+		if s { self.set(SCBRegs::ICSR as usize, 28) }
+		else { self.set(SCBRegs::ICSR as usize, 27) }
 	}
 
 	/// Returns true if PENDSVSET bit in ICSR is set
@@ -558,11 +532,9 @@ impl Scb {
 
 	/// Set the PENDSTCLR bit in the ICSR register which will clear a pending SysTick interrupt
 	#[inline]
-	pub fn pendst_state(&mut self, s: State) -> &mut Self {
-		match s {
-			State::ON  => self.set(SCBRegs::ICSR as usize, 26),
-			State::OFF => self.set(SCBRegs::ICSR as usize, 25),
-		}
+	pub fn pendst_state(&mut self, s: bool) -> &mut Self {
+		if s { self.set(SCBRegs::ICSR as usize, 26) }
+		else { self.set(SCBRegs::ICSR as usize, 25) }
 	}
 
 	#[inline]

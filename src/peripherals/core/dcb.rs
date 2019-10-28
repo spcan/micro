@@ -19,7 +19,7 @@ impl Dcb {
 	/// soft-reset, only on power reset.
 	pub fn enable_trace(&mut self) {
 	// Set bit 24
-		self.block[3] |= (1 << 24);
+		self.block[3] |= 1 << 24;
 	}
 
 	/// Disables TRACE. See `DCB::enable_trace()` for more details

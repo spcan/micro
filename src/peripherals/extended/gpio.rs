@@ -1,6 +1,8 @@
 //! General Purpose I/O (GPIO)
 
-use crate::common::{ Register, GPIOPin, PortConfig, AltFunction, GPIOSpeed, PUPD, OutputType };
+
+use crate::common::{ asm, Register, GPIOPin, PortConfig, AltFunction, GPIOSpeed, PUPD, OutputType };
+use crate::common::Pin;
 
 pub const ADDRESS_A: u32 = 0x4002_0000;
 pub const ADDRESS_B: u32 = 0x4002_0400;
@@ -13,40 +15,49 @@ pub const SIZE: usize = 10;
 
 #[repr(C)]
 pub struct Gpio {
-	block: [Register<u32>; SIZE],
+	base: u32,
+	pins: u32,
+	block: &'static mut [Register<u32>; SIZE],
 }
-
-impl crate::common::VolatileStruct for Gpio {}
 
 impl Gpio {
-	/// Sets bit at block and offset given
-	#[inline]
-	pub fn set(&mut self, b: usize, o: usize) -> &mut Self {
-		self.block[b] |= 1 << o;
-		self
+	/// Get the GPIO at `address`
+	pub unsafe fn new(address: u32) -> Self {
+		Gpio {
+			base: address,
+			pins: (1 << 16) - 1,
+			block: &mut *(address as *mut _),
+		}
 	}
 
-	/// Clears bit at block and offset given
-	#[inline]
-	pub fn clear(&mut self, b: usize, o: usize) -> &mut Self {
-		self.block[b] &= !(1 << o);
-		self
-	}
+	/// Request access to the `n`th pin
+	pub fn pin(&mut self, n: u32) -> Result<Pin, ()> {
+		if n > 15 { return Err(()); }
 
-	/// Checks if bit is set
-	#[inline]
-	pub fn is_set(&self, r: usize, b: usize) -> bool {
-		(self.block[r].read() >> b) & 1 == 1
-	}
-
-	#[inline]
-	pub fn write_bits(&mut self, b: usize, o: usize, data: u32, size: usize) -> &mut Self {
-		let mask = (1u32 << size) - 1;
-		let old = self.block[b].read();
-		self.block[b].write( old & !(mask << o) | ((data & mask) << o) );
-		self
+		match self.pins & (1 << n) == 0 {
+			true => Err(()),
+			_ => {
+				// This avoids data race conditions
+				// If another thread tries to get this pin, it will block this one or the other
+				self.pins ^= 1 << n;
+				// Waits 20 cycles
+				asm::delay(20);
+				match self.pins & (1 << n) == 0 {
+					true => 
+					Ok(
+						Pin::new(
+							self.base,
+							n
+						)
+					),
+					_ => Err(()),
+				}
+			},
+		}
 	}
 }
+
+impl_rwio!(Gpio);
 
 impl Gpio {
 	/// Set up port mode
@@ -63,7 +74,7 @@ impl Gpio {
 	}
 
 	/// Set port output speed
-	pub fn set_speed(&mut self, pin: GPIOPin, speed: GPIOSpeed) -> &mut Self {
+	pub fn set_ospeed(&mut self, pin: GPIOPin, speed: GPIOSpeed) -> &mut Self {
 		self.write_bits(2, pin as usize * 2, speed as u32, 2)
 	}
 
@@ -84,21 +95,21 @@ impl Gpio {
 
 	/// Sets the given port
 	pub fn set_port(&mut self, pin: GPIOPin) -> &mut Self {
-		self.block[6].write( 1 << pin as usize );
+		self.block[6].write( 1u32 << pin as usize );
 		self
 	}
 
 	/// Resets/Clears the given port
 	pub fn reset_port(&mut self, pin: GPIOPin) -> &mut Self {
-		self.block[6].write( 1 << (pin as usize * 2) );
+		self.block[6].write( 1u32 << (pin as usize + 16) );
 		self
 	}
 
 	/// Sets the AltFunction for `pin`
 	pub fn set_af(&mut self, pin: GPIOPin, af: AltFunction) -> &mut Self {
 		let offsets = match pin as usize {
-			0...7  => (8,  pin as usize * 4),
-			8...15 => (9, (pin as usize - 8) * 4),
+			0..=7  => (8,  pin as usize * 4),
+			8..=15 => (9, (pin as usize - 8) * 4),
 			_ => unreachable!(),
 		};
 

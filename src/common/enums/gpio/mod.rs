@@ -1,9 +1,8 @@
 //! GPIO enum mod
 
-mod portconfig;
-mod pins;
-mod af;
-
-pub use self::portconfig::*;
-pub use self::pins::*;
-pub use self::af::*;
+reexport!{
+	private:
+		mod af;
+		mod pins;
+		mod portconfig;
+}

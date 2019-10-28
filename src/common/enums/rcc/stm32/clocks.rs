@@ -12,6 +12,15 @@ pub enum DeviceClock {
 	PLLI2S,
 }
 
+/// These are the clocks that can be used as source for the device
+/// Source =/= output, for output clocks use `DeviceClock`
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum SrcClock {
+	HSI,
+	HSE,
+	PLL,
+}
+
 impl DeviceClock {
 	/// Returns the clock offsets for ON / OFF
 	pub fn offsets(&self) -> (usize, usize) {

@@ -2,6 +2,7 @@
 
 #![cfg_attr(feature = "inline-asm", feature(asm))]
 
+#![feature(const_fn)]
 
 #![no_std]
 

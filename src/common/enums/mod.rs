@@ -1,11 +1,20 @@
-mod extilines;
-mod state;
-mod trigger;
-mod rcc;
-mod gpio;
+//! Common enums used in all implementations
 
-pub use self::extilines::*;
-pub use self::state::*;
-pub use self::trigger::*;
-pub use self::rcc::*;
-pub use self::gpio::*;
+
+reexport!{
+	private:
+		mod extilines;
+		mod gpio;
+		mod i2c;
+		mod rcc;
+		mod spi;
+		mod tim;
+		mod trigger;
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum PeripheralBus {
+	APB1,
+	APB2,
+	AHB,
+}

@@ -2,13 +2,22 @@
 name = "micro"
 version = "0.1.0"
 authors = ["spcan <agrc14@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 
+[dependencies.embedded-hal]
+features = ["unproven"]
+version = "0.2.2"
+
+[dependencies.cortex-m-semihosting]
+optional = true
+version = "*"
+
 [features]
 advanced-use = []
-ahb2 = []
-ahb3 = ["ahb2"]
+apb2 = []
+apb3 = ["apb2"]
 clock_gates = []
 default = ["advanced-use"]
 double_exti = []
@@ -16,13 +25,17 @@ fpu = []
 pllsai = []
 plli2s = []
 single_exti = []
+sdio = []
+usbotg = []
+debug = [ "cortex-m-semihosting" ]
 
 
 stm32f0 = ["double_exti"]
 stm32f1 = ["single_exti"]
-stm32f4 = ["fpu", "single_exti", "ahb2"]
+stm32f4 = ["fpu", "single_exti", "apb2"]
+stm32f7 = []
 
-stm32f411 = ["stm32f4", "plli2s", "ahb2"]
+stm32f411 = ["stm32f4", "plli2s", "apb2", "sdio", "usbotg"]
 stm32f410 = ["stm32f4"]
 stm32f401 = ["stm32f4"]
 stm32f412 = ["stm32f4"]
@@ -32,4 +45,10 @@ stm32f4x7 = ["stm32f4"]
 stm32f4x9 = ["stm32f4"]
 stm32f446 = ["stm32f4"]
 
+stm32f72x = ["stm32f7"]
+stm32f73x = ["stm32f7"]
+
 stm32f100 = ["stm32f1"]
+
+[profile.release]
+lto = true

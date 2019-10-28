@@ -1,8 +1,6 @@
 //! Core peripherals of the STM32 devices
 
 
-use crate::common::VolatileStruct;
-
 
 #[cfg(fpu)]
 pub mod fpu;
